@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Overview · DNS Sentinel{% endblock %}
+{% block heading %}DNS Threat Overview{% endblock %}
+{% block content %}
+<section class="hero">
+<div><span class="eyebrow">DNS TUNNELING DETECTION</span><h2>See the signals hidden in DNS traffic.</h2><p>Analyze DNS query patterns, review risk indicators, and export findings from a single workspace.</p></div>
+<div class="hero-icon">⌁</div>
+</section>
+<section class="toolbar-panel">
+<div><h3>Analyze traffic</h3><p>Start with the synthetic sample, or upload a DNS CSV or packet capture.</p></div>
+<div class="action-row">
+<form action="{{ url_for('demo') }}" method="post"><button class="button primary" type="submit">Analyze sample dataset</button></form>
+<form action="{{ url_for('upload') }}" method="post" enctype="multipart/form-data" class="upload-form"><label class="file-button">Choose file<input type="file" name="file" accept=".csv,.pcap,.pcapng" required></label><button class="button secondary" type="submit">Upload & analyze</button></form>
+</div>
+</section>
+<div class="section-heading"><div><h3>Analysis summary</h3><p>Source: {{ result.filename }}</p></div><a class="text-link" href="{{ url_for('results') }}">View all results →</a></div>
+<section class="stats-grid">
+<div class="stat-card"><span class="stat-label">DNS QUERIES</span><div class="stat-value">{{ result.summary.get('total', 0) }}</div><span class="stat-foot">Records analyzed</span></div>
+<div class="stat-card"><span class="stat-label">SUSPICIOUS</span><div class="stat-value">{{ result.summary.get('suspicious', 0) }}</div><span class="stat-foot">Risk score ≥ 30</span></div>
+<div class="stat-card"><span class="stat-label">HIGH RISK</span><div class="stat-value danger-text">{{ result.summary.get('high', 0) }}</div><span class="stat-foot">Score ≥ 60</span></div>
+<div class="stat-card"><span class="stat-label">REGISTERED DOMAINS</span><div class="stat-value">{{ result.summary.get('domains', 0) }}</div><span class="stat-foot">Unique domain groups</span></div>
+</section>
+{% if result.records %}
+<section class="charts-grid">
+<div class="panel"><div class="panel-title"><h3>Severity distribution</h3><span>Current dataset</span></div><div class="chart-wrap"><canvas id="severityChart"></canvas></div></div>
+<div class="panel"><div class="panel-title"><h3>Risk overview</h3><span>Query classification</span></div><div class="chart-wrap"><canvas id="riskChart"></canvas></div></div>
+</section>
+<section class="panel table-panel">
+<div class="panel-title"><div><h3>Recent alerts</h3><p>Highest-risk queries from the current analysis</p></div><a class="text-link" href="{{ url_for('results') }}">Full results →</a></div>
+<div class="table-scroll"><table><thead><tr><th>DOMAIN</th><th>SOURCE IP</th><th>RISK</th><th>SEVERITY</th><th>DETECTION REASONS</th></tr></thead><tbody>
+{% for item in result.records|sort(attribute='risk_score', reverse=true) %}
+{% if loop.index <= 7 %}
+<tr><td class="domain-cell"><a href="{{ url_for('query_details', index=item.record_id) }}">{{ item.domain }}</a></td><td>{{ item.source_ip }}</td><td><span class="risk-number">{{ item.risk_score }}/100</span></td><td><span class="severity {{ item.severity|lower }}">{{ item.severity }}</span></td><td>{{ item.reasons|join('; ') }}</td></tr>
+{% endif %}
+{% endfor %}
+</tbody></table></div>
+</section>
+{% else %}
+<div class="empty-state"><div class="empty-icon">⌁</div><h3>No analysis yet</h3><p>Analyze the included sample dataset to populate the dashboard with real detection results.</p><form action="{{ url_for('demo') }}" method="post"><button class="button primary" type="submit">Run sample analysis</button></form></div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+{% if result.records %}
+<script>
+const severityCounts = {{ result.records|map(attribute='severity')|list|tojson }};
+const low = severityCounts.filter(v => v === 'Low').length;
+const medium = severityCounts.filter(v => v === 'Medium').length;
+const high = severityCounts.filter(v => v === 'High').length;
+new Chart(document.getElementById('severityChart'), {type:'doughnut',data:{labels:['Low','Medium','High'],datasets:[{data:[low,medium,high],backgroundColor:['#36b89b','#e6b45d','#f16b78'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#a9b6c9',usePointStyle:true,padding:20}}}}});
+new Chart(document.getElementById('riskChart'), {type:'bar',data:{labels:['Normal / low','Suspicious','High risk'],datasets:[{label:'Queries',data:[low,medium,high],backgroundColor:['#36b89b','#e6b45d','#f16b78'],borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#a9b6c9'},grid:{display:false}},y:{beginAtZero:true,ticks:{color:'#a9b6c9',precision:0},grid:{color:'#243147'}}}}});
+</script>
+{% endif %}
+{% endblock %}

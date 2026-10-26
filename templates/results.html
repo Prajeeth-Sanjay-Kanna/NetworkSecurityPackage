@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Analysis results · DNS Sentinel{% endblock %}
+{% block heading %}Analysis Results{% endblock %}
+{% block content %}
+<div class="section-heading"><div><h3>DNS query findings</h3><p>{{ records|length }} matching records · Source: {{ result.filename }}</p></div><div class="action-row"><a class="button secondary" href="{{ url_for('export_results', format_name='csv') }}">Export CSV</a><a class="button secondary" href="{{ url_for('export_results', format_name='json') }}">Export JSON</a></div></div>
+<form class="filter-bar" method="get">
+<input type="search" name="q" value="{{ query }}" placeholder="Search domain, IP, or reason">
+<select name="severity"><option {% if severity == 'All' %}selected{% endif %}>All</option><option {% if severity == 'Low' %}selected{% endif %}>Low</option><option {% if severity == 'Medium' %}selected{% endif %}>Medium</option><option {% if severity == 'High' %}selected{% endif %}>High</option></select>
+<select name="sort"><option value="risk" {% if sort == 'risk' %}selected{% endif %}>Highest risk first</option><option value="time" {% if sort == 'time' %}selected{% endif %}>Latest timestamp first</option></select>
+<button class="button primary" type="submit">Apply filters</button>
+</form>
+<section class="panel table-panel"><div class="table-scroll"><table><thead><tr><th>DOMAIN</th><th>SOURCE IP</th><th>QUERY LENGTH</th><th>ENTROPY</th><th>RISK</th><th>SEVERITY</th><th>DETAILS</th></tr></thead><tbody>
+{% for item in records %}
+<tr><td class="domain-cell"><a href="{{ url_for('query_details', index=item.record_id) }}">{{ item.domain }}</a></td><td>{{ item.source_ip }}</td><td>{{ item.query_length }}</td><td>{{ "%.3f"|format(item.entropy) }}</td><td><span class="risk-number">{{ item.risk_score }}/100</span></td><td><span class="severity {{ item.severity|lower }}">{{ item.severity }}</span></td><td><button type="button" class="inline-button" onclick="showDetails(this)" data-reasons="{{ item.reasons|join(' | ') }}">View reasons</button></td></tr>
+{% else %}
+<tr><td colspan="7" class="no-results">No records match the selected filters.</td></tr>
+{% endfor %}
+</tbody></table></div></section>
+<div id="reasonModal" class="modal" hidden><div class="modal-card"><button class="modal-close" onclick="document.getElementById('reasonModal').hidden=true">×</button><h3>Detection reasons</h3><p id="reasonText"></p></div></div>
+{% endblock %}
+{% block scripts %}
+<script>
+function showDetails(button){document.getElementById('reasonText').textContent=button.dataset.reasons;document.getElementById('reasonModal').hidden=false}
+document.getElementById('reasonModal').addEventListener('click',function(event){if(event.target===this)this.hidden=true})
+</script>
+{% endblock %}

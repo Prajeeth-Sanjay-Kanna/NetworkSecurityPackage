@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Query details · DNS Sentinel{% endblock %}
+{% block heading %}Query Details{% endblock %}
+{% block content %}
+<a class="text-link back-link" href="{{ url_for('results') }}">← Back to results</a>
+<section class="detail-hero panel"><div><span class="eyebrow">ANALYZED DNS QUERY</span><h2 class="detail-domain">{{ item.domain }}</h2><p>{{ item.timestamp }}</p></div><div class="detail-score"><strong>{{ item.risk_score }}</strong><span>/ 100</span><span class="severity {{ item.severity|lower }}">{{ item.severity }} risk</span></div></section>
+<section class="stats-grid detail-stats"><div class="stat-card"><span class="stat-label">SOURCE IP</span><div class="detail-value">{{ item.source_ip }}</div></div><div class="stat-card"><span class="stat-label">QUERY LENGTH</span><div class="stat-value">{{ item.query_length }}</div></div><div class="stat-card"><span class="stat-label">MAX SUBDOMAIN ENTROPY</span><div class="stat-value">{{ "%.3f"|format(item.entropy) }}</div></div><div class="stat-card"><span class="stat-label">TRIGGERED RULES</span><div class="stat-value">{{ item.triggered_rules|length }}</div></div></section>
+<section class="panel reasons-panel"><h3>Why this query was flagged</h3><p class="muted">A detection rule identifies an indicator for review; it does not prove malicious activity.</p><ul class="reason-list">{% for reason in item.reasons %}<li><span class="reason-bullet"></span>{{ reason }}</li>{% endfor %}</ul><h3>Triggered rules</h3><div class="tag-list">{% for rule in item.triggered_rules %}<span class="rule-tag">{{ rule }}</span>{% else %}<span class="muted">No rules triggered</span>{% endfor %}</div></section>
+{% endblock %}
